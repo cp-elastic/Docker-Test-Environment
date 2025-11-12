@@ -10,7 +10,7 @@ services:
   # REF: https://docs.docker.com/compose/compose-file/#variable-substitution
   #
   elasticsearch01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    image: docker.elastic.co/elasticsearch/elasticsearch-wolfi:${TAG}
     container_name: elasticsearch01
     environment:
       - node.name=elasticsearch01
@@ -47,7 +47,7 @@ services:
       retries: 5
 
   elasticsearch02:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    image: docker.elastic.co/elasticsearch/elasticsearch-wolfi:${TAG}
     container_name: elasticsearch02
     environment:
       - node.name=elasticsearch02
@@ -84,7 +84,7 @@ services:
       retries: 5
 
   elasticsearch03:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    image: docker.elastic.co/elasticsearch/elasticsearch-wolfi:${TAG}
     container_name: elasticsearch03
     environment:
       - node.name=elasticsearch03     
@@ -121,7 +121,7 @@ services:
       retries: 5
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:${TAG}
+    image: docker.elastic.co/logstash/logstash-wolfi:${TAG}
     container_name: logstash
     environment:
       - ELASTICSEARCH_HOSTS=https://elasticsearch01:9200
@@ -150,38 +150,38 @@ services:
       co.elastic.logs/module: logstash      
       co.elastic.metrics/module: logstash
 
-  enterprisesearch:
-    image: docker.elastic.co/enterprise-search/enterprise-search:${TAG}
-    container_name: enterprisesearch
-    volumes:
-      - enterprisesearch_data:/usr/share/enterprise-search/config
-    ports: ['3002:3002']
-    networks: ['stack']
-    environment:
-      - SERVERNAME=enterprisesearch
-      - secret_management.encryption_keys=["${ELASTIC_PASSWORD}"]
-      - allow_es_settings_modification=true
-      - elasticsearch.host=https://elasticsearch01:9200
-      - elasticsearch.username=elastic
-      - elasticsearch.password=${ELASTIC_PASSWORD}
-      - elasticsearch.ssl.enabled=true
-      - elasticsearch.ssl.certificate_authority=/usr/share/enterprise-search/config/certs/ca/ca.crt
-      - kibana.external_url=http://kibana:5601
-    secrets:
-      - source: ca.crt
-        target: /usr/share/enterprise-search/config/certs/ca/ca.crt
-    deploy:
-      resources:
-        limits:
-          memory: 4096M
-    healthcheck:
-      test: curl -s -I http://localhost:3002 | grep -q 'HTTP/1.1 302 Found'
-      interval: 10s
-      timeout: 10s
-      retries: 120
+  # enterprisesearch:
+  #   image: docker.elastic.co/enterprise-search/enterprise-search:${TAG}
+  #   container_name: enterprisesearch
+  #   volumes:
+  #     - enterprisesearch_data:/usr/share/enterprise-search/config
+  #   ports: ['3002:3002']
+  #   networks: ['stack']
+  #   environment:
+  #     - SERVERNAME=enterprisesearch
+  #     - secret_management.encryption_keys=["${ELASTIC_PASSWORD}"]
+  #     - allow_es_settings_modification=true
+  #     - elasticsearch.host=https://elasticsearch01:9200
+  #     - elasticsearch.username=elastic
+  #     - elasticsearch.password=${ELASTIC_PASSWORD}
+  #     - elasticsearch.ssl.enabled=true
+  #     - elasticsearch.ssl.certificate_authority=/usr/share/enterprise-search/config/certs/ca/ca.crt
+  #     - kibana.external_url=http://kibana:5601
+  #   secrets:
+  #     - source: ca.crt
+  #       target: /usr/share/enterprise-search/config/certs/ca/ca.crt
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 4096M
+  #   healthcheck:
+  #     test: curl -s -I http://localhost:3002 | grep -q 'HTTP/1.1 302 Found'
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 120
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:${TAG}
+    image: docker.elastic.co/kibana/kibana-wolfi:${TAG}
     container_name: kibana
     environment:
       ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200"]'
@@ -213,7 +213,7 @@ services:
       co.elastic.metrics/module: kibana
 
   auditbeat:
-    image: docker.elastic.co/beats/auditbeat:${TAG}
+    image: docker.elastic.co/beats/auditbeat-wolfi:${TAG}
     container_name: auditbeat
     command: -e --strict.perms=false # -e flag to log to stderr and disable syslog/file output
     environment:
@@ -251,7 +251,7 @@ services:
       co.elastic.metrics/module: auditbeat 
 
   filebeat:
-    image: docker.elastic.co/beats/filebeat:${TAG}
+    image: docker.elastic.co/beats/filebeat-wolfi:${TAG}
     container_name: filebeat
     command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
     environment:
@@ -289,7 +289,7 @@ services:
       co.elastic.metrics/module: filebeat     
 
   heartbeat:
-    image: docker.elastic.co/beats/heartbeat:${TAG}
+    image: docker.elastic.co/beats/heartbeat-wolfi:${TAG}
     container_name: heartbeat
     command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
     environment:
@@ -320,7 +320,7 @@ services:
       co.elastic.metrics/module: heartbeat
 
   metricbeat:
-    image: docker.elastic.co/beats/metricbeat:${TAG}
+    image: docker.elastic.co/beats/metricbeat-wolfi:${TAG}
     container_name: metricbeat
     command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
     environment:
@@ -356,7 +356,7 @@ services:
       co.elastic.logs/module: metricbeat
 
   packetbeat:
-    image: docker.elastic.co/beats/packetbeat:${TAG}
+    image: docker.elastic.co/beats/packetbeat-wolfi:${TAG}
     container_name: packetbeat
     # Packetbeat needs some elevated privileges to capture network traffic.
     # We'll grant them with POSIX capabilities.
@@ -395,7 +395,7 @@ services:
       co.elastic.metrics/module: packetbeat
 
   fleet-server:
-    image: docker.elastic.co/beats/elastic-agent:$TAG
+    image: docker.elastic.co/beats/elastic-agent-wolfi:$TAG
     container_name: fleet-server
     ports:
       - 8220:8220
@@ -429,7 +429,7 @@ services:
     networks: ['stack']
 
   elastic-agent:
-    image: docker.elastic.co/beats/elastic-agent:${TAG}
+    image: docker.elastic.co/beats/elastic-agent-wolfi:${TAG}
     container_name: elastic-agent
     restart: always
     user: root # note, synthetic browser monitors require this set to `elastic-agent`
@@ -583,7 +583,7 @@ volumes:
   es_data01:
   es_data02:
   es_data03:
-  enterprisesearch_data: 
+  # search_data: 
   suricata_logs:
   zeek_logs:
   opencanary_logs:
