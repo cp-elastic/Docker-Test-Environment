@@ -13,8 +13,8 @@ All personas have (stack):
 * Automated TLS
 
 The Security persona has:
-* Demo Node.JS app with simulated traffic
-* OpenCanary for tripwire / honeypot
+* [Demo Node.JS app](https://github.com/benc-uk/nodejs-demoapp) with simulated traffic
+* [OpenCanary](https://github.com/thinkst/opencanary) for tripwire / honeypot
 * Suricata, Packetbeat, Auditbeat, Zeek
   * Monitoring <b>all</b> host network traffic as if it were locally installed
 * Metricbeat
