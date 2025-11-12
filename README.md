@@ -1,7 +1,6 @@
-# consultant-training-env
 ## About
-**Version 8.15.0**<br>
-This is a project to have an enviroment for consultants to demo/test/train on that is easy and fast to set up. <br>
+**Version 8.19.7**<br>
+This is a project to have an environment for consultants to demo/test/train on that is easy and fast to set up. <br>
 It is tested and working on a single **e2-standard-4** running Debian with **500GB** disk.
 <br>
 <br>
@@ -60,8 +59,4 @@ Add TheHive: https://docs.strangebee.com/thehive/setup/installation/docker/#quic
 Add Cortex: https://docs.thehive-project.org/cortex/installation-and-configuration/#run-with-docker<br>
 Add Tines<br>
 Add more AI features
-
-## Training
-[Docker FUNdamentals](https://drive.google.com/file/d/1ttW2aXjYhxTBrO3sDu4hGQN_u1lGmIKR/view?usp=sharing) (EGS Google Drive)<br>
-[Docker Security Stack Overview](https://drive.google.com/file/d/1waXY-p2XlGLQYh1LYVEciTql3XRF0AZj/view?usp=sharing) (EGS Google Drive)
 
