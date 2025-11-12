@@ -1,0 +1,679 @@
+---
+services:
+  # The environment variable "TAG" is used throughout this file to
+  # specify the version of the images to run. The default is set in the
+  # '.env' file in this folder. It can be overridden with any normal
+  # technique for setting environment variables, for example:
+  #
+  #   TAG=6.0.0-beta1 docker-compose up
+  #
+  # REF: https://docs.docker.com/compose/compose-file/#variable-substitution
+  #
+  elasticsearch01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    container_name: elasticsearch01
+    environment:
+      - node.name=elasticsearch01
+      - discovery.seed_hosts=elasticsearch02,elasticsearch03
+    deploy:
+      resources:
+        limits:
+          memory: 8192M
+    labels:
+      co.elastic.logs/module: elasticsearch
+      co.elastic.logs/fileset.stdout: server
+      co.elastic.metrics/module: elasticsearch
+    secrets:
+      - source: ca.crt
+        target: /usr/share/elasticsearch/config/certs/ca/ca.crt
+      - source: elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: elasticsearch.keystore
+        target: /usr/share/elasticsearch/config/elasticsearch.keystore
+      - source: elasticsearch01.key
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key
+      - source: elasticsearch01.crt
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt
+      - source: elasticsearch.servicetokens
+        target: /usr/share/elasticsearch/config/service_tokens
+    ports: ['9200:9200', '9300:9300']
+    networks: ['stack']
+    volumes:
+      - 'es_data01:/usr/share/elasticsearch/data'
+    healthcheck:
+      test: curl --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  elasticsearch02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    container_name: elasticsearch02
+    environment:
+      - node.name=elasticsearch02
+      - discovery.seed_hosts=elasticsearch01,elasticsearch03
+    deploy:
+      resources:
+        limits:
+          memory: 8192M
+    labels:
+      co.elastic.logs/module: elasticsearch
+      co.elastic.logs/fileset.stdout: server
+      co.elastic.metrics/module: elasticsearch
+    secrets:
+      - source: ca.crt
+        target: /usr/share/elasticsearch/config/certs/ca/ca.crt
+      - source: elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: elasticsearch.keystore
+        target: /usr/share/elasticsearch/config/elasticsearch.keystore
+      - source: elasticsearch02.key
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key
+      - source: elasticsearch02.crt
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt
+      - source: elasticsearch.servicetokens
+        target: /usr/share/elasticsearch/config/service_tokens
+    ports: ['9201:9200']
+    networks: ['stack']
+    volumes:
+      - 'es_data02:/usr/share/elasticsearch/data'
+    healthcheck:
+      test: curl --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  elasticsearch03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    container_name: elasticsearch03
+    environment:
+      - node.name=elasticsearch03     
+      - discovery.seed_hosts=elasticsearch01,elasticsearch02
+    deploy:
+      resources:
+        limits:
+          memory: 8192M
+    labels:
+      co.elastic.logs/module: elasticsearch
+      co.elastic.logs/fileset.stdout: server
+      co.elastic.metrics/module: elasticsearch
+    secrets:
+      - source: ca.crt
+        target: /usr/share/elasticsearch/config/certs/ca/ca.crt
+      - source: elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: elasticsearch.keystore
+        target: /usr/share/elasticsearch/config/elasticsearch.keystore
+      - source: elasticsearch03.key
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.key
+      - source: elasticsearch03.crt
+        target: /usr/share/elasticsearch/config/certs/elasticsearch/elasticsearch.crt
+      - source: elasticsearch.servicetokens
+        target: /usr/share/elasticsearch/config/service_tokens
+    ports: ['9202:9200']
+    networks: ['stack']
+    volumes:
+      - 'es_data03:/usr/share/elasticsearch/data'
+    healthcheck:
+      test: curl --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${TAG}
+    container_name: logstash
+    environment:
+      - ELASTICSEARCH_HOSTS=https://elasticsearch01:9200
+      - ES_PWD=${ELASTIC_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    secrets:
+      - source: logstash.conf
+        target: /usr/share/logstash/pipeline/logstash.conf
+      - source: logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+      # - source: logstash.keystore
+      #   target: /usr/share/logstash/config/logstash.keystore
+      - source: ca.crt
+        target: /usr/share/logstash/config/certs/ca/ca.crt
+    networks: ['stack']
+    ports: ['5044:5044']
+    healthcheck:
+      test: bin/logstash -t
+      interval: 60s
+      timeout: 50s
+      retries: 5
+    labels:
+      co.elastic.logs/module: logstash      
+      co.elastic.metrics/module: logstash
+
+  enterprisesearch:
+    image: docker.elastic.co/enterprise-search/enterprise-search:${TAG}
+    container_name: enterprisesearch
+    volumes:
+      - enterprisesearch_data:/usr/share/enterprise-search/config
+    ports: ['3002:3002']
+    networks: ['stack']
+    environment:
+      - SERVERNAME=enterprisesearch
+      - secret_management.encryption_keys=["${ELASTIC_PASSWORD}"]
+      - allow_es_settings_modification=true
+      - elasticsearch.host=https://elasticsearch01:9200
+      - elasticsearch.username=elastic
+      - elasticsearch.password=${ELASTIC_PASSWORD}
+      - elasticsearch.ssl.enabled=true
+      - elasticsearch.ssl.certificate_authority=/usr/share/enterprise-search/config/certs/ca/ca.crt
+      - kibana.external_url=http://kibana:5601
+    secrets:
+      - source: ca.crt
+        target: /usr/share/enterprise-search/config/certs/ca/ca.crt
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    healthcheck:
+      test: curl -s -I http://localhost:3002 | grep -q 'HTTP/1.1 302 Found'
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${TAG}
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200"]'
+      ENCRYPTION_KEY: ${ELASTIC_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+    secrets:
+      - source: kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+      - source: kibana.keystore
+        target: /usr/share/kibana/config/kibana.keystore
+      - source: ca.crt
+        target: /usr/share/kibana/config/certs/ca/ca.crt
+      - source: kibana.key
+        target: /usr/share/kibana/config/certs/kibana/kibana.key
+      - source: kibana.crt
+        target: /usr/share/kibana/config/certs/kibana/kibana.crt
+    ports: ['5601:5601']
+    networks: ['stack']
+    healthcheck:
+      test: curl --cacert /usr/share/kibana/config/certs/ca/ca.crt -s https://localhost:5601 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      co.elastic.logs/module: kibana
+      co.elastic.metrics/module: kibana
+
+  auditbeat:
+    image: docker.elastic.co/beats/auditbeat:${TAG}
+    container_name: auditbeat
+    command: -e --strict.perms=false # -e flag to log to stderr and disable syslog/file output
+    environment:
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200", "https://elasticsearch02:9200", "https://elasticsearch03:9200"]'
+    cap_add: ['AUDIT_CONTROL', 'AUDIT_READ', 'NET_ADMIN']
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    secrets:
+      - source: auditbeat.yml
+        target: /usr/share/auditbeat/auditbeat.yml
+      - source: auditbeat.keystore
+        target: /usr/share/auditbeat/data/auditbeat.keystore
+      - source: ca.crt
+        target: /usr/share/auditbeat/certs/ca/ca.crt
+      - source: auditbeat.crt
+        target: /usr/share/auditbeat/certs/auditbeat/auditbeat.crt
+      - source: auditbeat.key
+        target: /usr/share/auditbeat/certs/auditbeat/auditbeat.key
+    # Auditbeat must run in the main process namespace.
+    pid: host
+    user: root
+    privileged: true
+    volumes:
+      - /sys:/sys:ro
+    networks: ['stack']
+    healthcheck:
+      test: auditbeat --strict.perms=false test config
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      co.elastic.logs/module: auditbeat
+      co.elastic.metrics/module: auditbeat 
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${TAG}
+    container_name: filebeat
+    command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
+    environment:
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200", "https://elasticsearch02:9200", "https://elasticsearch03:9200"]'
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    secrets:
+      - source: filebeat.yml
+        target: /usr/share/filebeat/filebeat.yml
+      - source: filebeat.keystore
+        target: /usr/share/filebeat/data/filebeat.keystore
+      - source: ca.crt
+        target: /usr/share/filebeat/certs/ca/ca.crt
+      - source: filebeat.crt
+        target: /usr/share/filebeat/certs/filebeat/filebeat.crt
+      - source: filebeat.key
+        target: /usr/share/filebeat/certs/filebeat/filebeat.key
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/host-log:ro
+      - suricata_logs:/var/log/suricata:ro
+      - zeek_logs:/var/log/zeek:ro
+      - opencanary_logs:/var/log/opencanary:ro
+    networks: ['stack']
+    user: root
+    healthcheck:
+      test: filebeat test config
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      co.elastic.metrics/module: filebeat     
+
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:${TAG}
+    container_name: heartbeat
+    command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
+    environment:
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200", "https://elasticsearch02:9200", "https://elasticsearch03:9200"]'
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    secrets:
+      - source: heartbeat.yml
+        target: /usr/share/heartbeat/heartbeat.yml
+      - source: heartbeat.keystore
+        target: /usr/share/heartbeat/data/heartbeat.keystore
+      - source: ca.crt
+        target: /usr/share/heartbeat/certs/ca/ca.crt
+      - source: heartbeat.crt
+        target: /usr/share/heartbeat/certs/heartbeat/heartbeat.crt
+      - source: heartbeat.key
+        target: /usr/share/heartbeat/certs/heartbeat/heartbeat.key
+    networks: ['stack']
+    healthcheck:
+      test: heartbeat test config
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      co.elastic.logs/module: heartbeat
+      co.elastic.metrics/module: heartbeat
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:${TAG}
+    container_name: metricbeat
+    command: --strict.perms=false -e  # -e flag to log to stderr and disable syslog/file output
+    environment:
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch01:9200", "https://elasticsearch02:9200", "https://elasticsearch03:9200"]'
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    secrets:
+      - source: metricbeat.yml
+        target: /usr/share/metricbeat/metricbeat.yml
+      - source: metricbeat.keystore
+        target: /usr/share/metricbeat/data/metricbeat.keystore
+      - source: ca.crt
+        target: /usr/share/metricbeat/certs/ca/ca.crt
+      - source: metricbeat.crt
+        target: /usr/share/metricbeat/certs/metricbeat/metricbeat.crt
+      - source: metricbeat.key
+        target: /usr/share/metricbeat/certs/metricbeat/metricbeat.key
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: ['stack']
+    user: root
+    healthcheck:
+      test: metricbeat test config
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      co.elastic.logs/module: metricbeat
+
+  packetbeat:
+    image: docker.elastic.co/beats/packetbeat:${TAG}
+    container_name: packetbeat
+    # Packetbeat needs some elevated privileges to capture network traffic.
+    # We'll grant them with POSIX capabilities.
+    cap_add: ['NET_RAW', 'NET_ADMIN']
+    # Use "host mode" networking to allow Packetbeat to capture traffic from
+    # the real network interface on the host, rather than being isolated to the
+    # container's virtual interface.
+    network_mode: host
+    # Since we did that, Packetbeat is not part of the "stack" Docker network
+    # that the other containers are connected to, and thus can't resolve the
+    # hostname "elasticsearch". Instead, we'll tell it to find Elasticsearch
+    # on "localhost", which is the Docker host machine in this context.
+    command: --strict.perms=false -e # -e flag to log to stderr and disable syslog/file output
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    secrets:
+      - source: packetbeat.yml
+        target: /usr/share/packetbeat/packetbeat.yml
+      - source: packetbeat.keystore
+        target: /usr/share/packetbeat/data/packetbeat.keystore
+      - source: ca.crt
+        target: /usr/share/packetbeat/certs/ca/ca.crt
+      - source: packetbeat.crt
+        target: /usr/share/packetbeat/certs/packetbeat/packetbeat.crt
+      - source: packetbeat.key
+        target: /usr/share/packetbeat/certs/packetbeat/packetbeat.key
+    healthcheck:
+      test: packetbeat test config
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      co.elastic.logs/module: packetbeat
+      co.elastic.metrics/module: packetbeat
+
+  fleet-server:
+    image: docker.elastic.co/beats/elastic-agent:$TAG
+    container_name: fleet-server
+    ports:
+      - 8220:8220
+    user: root
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    environment:
+      - FLEET_ENROLL=1
+      - FLEET_SERVER_POLICY_ID=fleet-server-policy
+      - FLEET_SERVER_ENABLE=1
+      - KIBANA_FLEET_SETUP=1
+      - KIBANA_HOST=https://kibana:5601
+      - FLEET_URL=https://fleet-server:8220
+      - FLEET_SERVER_ELASTICSEARCH_HOST=https://elasticsearch01:9200
+      - FLEET_CA=/usr/share/fleet-server/certs/ca.crt
+      - KIBANA_FLEET_USERNAME=elastic
+      - KIBANA_FLEET_PASSWORD=${ELASTIC_PASSWORD}
+      - FLEET_SERVER_CERT=/usr/share/fleet-server/certs/fleet-server.crt
+      - FLEET_SERVER_CERT_KEY=/usr/share/fleet-server/certs/fleet-server.key
+      - FLEET_SERVER_ELASTICSEARCH_CA=/usr/share/fleet-server/certs/ca.crt
+      - KIBANA_FLEET_CA=/usr/share/fleet-server/certs/ca.crt
+    secrets:
+      - source: ca.crt
+        target: /usr/share/fleet-server/certs/ca.crt
+      - source: fleet-server.crt
+        target: /usr/share/fleet-server/certs/fleet-server.crt
+      - source: fleet-server.key
+        target: /usr/share/fleet-server/certs/fleet-server.key
+    networks: ['stack']
+
+  elastic-agent:
+    image: docker.elastic.co/beats/elastic-agent:${TAG}
+    container_name: elastic-agent
+    restart: always
+    user: root # note, synthetic browser monitors require this set to `elastic-agent`
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    environment:
+      - FLEET_ENROLL=1
+      - FLEET_URL=http://fleet-server:8220
+      - FLEET_INSECURE=1
+      - FLEET_TOKEN_POLICY_NAME=Default policy
+      - KIBANA_HOST=https://kibana:5601
+      - KIBANA_CA=/usr/share/elastic-agent/certs/ca/ca.crt
+      - KIBANA_USERNAME=elastic
+      - KIBANA_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_HOST_SSL_VERIFICATION_MODE=certificate
+      - ELASTICSEARCH_HOST=https://elasticsearch01:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_CA=/usr/share/elastic-agent/certs/ca/ca.crt
+    secrets:
+      - source: ca.crt
+        target: /usr/share/elastic-agent/certs/ca/ca.crt
+    networks: ['stack']
+    ports:
+      - 8220:8220
+    healthcheck:
+      test: curl -s -k http://localhost:8220/api/status | grep -q 'HEALTHY'
+      retries: 300
+      interval: 1s
+
+  app-nodejs:
+    image: nodejs:local
+    container_name: app-nodejs
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    environment:
+      ELASTIC_APM_SERVICE_NAME: app-nodejs
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTIC_APM_SECRET_TOKEN: thisismytoken
+    networks: ['stack']
+    ports:
+      - 3000:3000
+
+  nsm-suricata:
+    image: jasonish/suricata:latest
+    container_name: nsm-suricata
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    environment:
+      SURICATA_OPTIONS: "-i ens4 -vvv"
+    restart: always
+    volumes:
+      - suricata_logs:/var/log/suricata:rw
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    network_mode: host
+
+  nsm-zeek:
+    image: blacktop/zeek:elastic
+    container_name: nsm-zeek
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    cap_add:
+      - "NET_RAW"
+    network_mode: host
+    command: [ "-i", "af_packet::ens4", "local", "-C"]
+    volumes:
+      - zeek_logs:/pcap:rw
+
+  app-traffic-gen:
+    image: peet2k17/web-traffic-generator
+    container_name: app-traffic-gen
+    deploy:
+      resources:
+        limits:
+          memory: 64MB
+    secrets: 
+      - source: traffic-gen.py
+        target: /usr/src/app/script.py
+    networks: ['stack']
+
+  opencanary:
+    image: neomediatech/opencanary:latest
+    hostname: opencanary
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 20s
+      resources:
+        limits:
+          memory: 128M 
+    environment:
+      TZ: America/New_York
+    stop_grace_period: 20s
+    ports:
+      - target: 21
+        published: 21
+        protocol: tcp
+      - target: 22
+        published: 8022
+        protocol: tcp
+      - target: 23
+        published: 23
+        protocol: tcp
+      - target: 5900
+        published: 5900
+        protocol: tcp
+      - target: 3306
+        published: 3306
+        protocol: tcp
+      - target: 6379
+        published: 6379
+        protocol: tcp
+      - target: 1433
+        published: 1433
+        protocol: tcp
+      - target: 3389
+        published: 3389
+        protocol: tcp
+      - target: 8080
+        published: 8080
+        protocol: tcp
+      - target: 69
+        published: 69
+        protocol: udp
+      - target: 161
+        published: 161
+        protocol: udp
+      - target: 123
+        published: 123
+        protocol: udp
+    volumes:
+      - ./apps/opencanary/opencanary.conf:/root/.opencanary.conf
+      - opencanary_logs:/data/
+
+networks: {stack: {}}
+
+# use docker volume to persist ES data outside of a container.
+volumes:
+  es_data01:
+  es_data02:
+  es_data03:
+  enterprisesearch_data: 
+  suricata_logs:
+  zeek_logs:
+  opencanary_logs:
+
+secrets:
+  fleet-server.crt:
+    file: ./config/ssl/docker-cluster/fleet-server/fleet-server.crt
+  fleet-server.key:
+    file: ./config/ssl/docker-cluster/fleet-server/fleet-server.key
+  traffic-gen.py:
+    file: ./apps/traffic-gen/traffic-gen.py
+  ca.crt:
+    file: ./config/ssl/ca/ca.crt
+  elasticsearch.yml:
+    file: ./config/elasticsearch/elasticsearch.yml
+  elasticsearch.keystore:
+    file: ./config/elasticsearch/elasticsearch.keystore
+  elasticsearch.servicetokens:
+    file: ./config/elasticsearch/service_tokens
+  elasticsearch01.key:
+    file: ./config/ssl/docker-cluster/elasticsearch01/elasticsearch01.key
+  elasticsearch01.crt:
+    file: ./config/ssl/docker-cluster/elasticsearch01/elasticsearch01.crt
+  elasticsearch02.key:
+    file: ./config/ssl/docker-cluster/elasticsearch02/elasticsearch02.key
+  elasticsearch02.crt:
+    file: ./config/ssl/docker-cluster/elasticsearch02/elasticsearch02.crt
+  elasticsearch03.key:
+    file: ./config/ssl/docker-cluster/elasticsearch03/elasticsearch03.key
+  elasticsearch03.crt:
+    file: ./config/ssl/docker-cluster/elasticsearch03/elasticsearch03.crt
+  logstash.yml:
+    file: ./config/logstash/logstash.yml
+  # logstash.keystore:
+  #   file: ./config/logstash/logstash.keystore
+  logstash.conf:
+    file: ./config/logstash/pipeline/logstash.conf
+  kibana.yml:
+    file: ./config/kibana/kibana.yml
+  kibana.keystore:
+    file: ./config/kibana/kibana.keystore
+  kibana.key:
+    file: ./config/ssl/docker-cluster/kibana/kibana.key
+  kibana.crt:
+    file: ./config/ssl/docker-cluster/kibana/kibana.crt
+  auditbeat.yml:
+    file: ./config/auditbeat/auditbeat.yml
+  auditbeat.keystore:
+    file: ./config/auditbeat/auditbeat.keystore
+  auditbeat.crt:
+    file: ./config/ssl/docker-cluster/auditbeat/auditbeat.crt
+  auditbeat.key:
+    file: ./config/ssl/docker-cluster/auditbeat/auditbeat.key
+  filebeat.yml:
+    file: ./config/filebeat/filebeat.yml
+  filebeat.keystore:
+    file: ./config/filebeat/filebeat.keystore
+  filebeat.crt:
+    file: ./config/ssl/docker-cluster/filebeat/filebeat.crt
+  filebeat.key:
+    file: ./config/ssl/docker-cluster/filebeat/filebeat.key
+  heartbeat.yml:
+    file: ./config/heartbeat/heartbeat.yml
+  heartbeat.keystore:
+    file: ./config/heartbeat/heartbeat.keystore
+  heartbeat.crt:
+    file: ./config/ssl/docker-cluster/heartbeat/heartbeat.crt
+  heartbeat.key:
+    file: ./config/ssl/docker-cluster/heartbeat/heartbeat.key
+  metricbeat.yml:
+    file: ./config/metricbeat/metricbeat.yml
+  metricbeat.keystore:
+    file: ./config/metricbeat/metricbeat.keystore
+  metricbeat.key:
+    file: ./config/ssl/docker-cluster/metricbeat/metricbeat.key
+  metricbeat.crt:
+    file: ./config/ssl/docker-cluster/metricbeat/metricbeat.crt
+  packetbeat.yml:
+    file: ./config/packetbeat/packetbeat.yml
+  packetbeat.keystore:
+    file: ./config/packetbeat/packetbeat.keystore
+  packetbeat.crt:
+    file: ./config/ssl/docker-cluster/packetbeat/packetbeat.crt
+  packetbeat.key:
+    file: ./config/ssl/docker-cluster/packetbeat/packetbeat.key
+  apm-server.yml:
+    file: ./config/apm-server/apm-server.yml
+  apm-server.keystore:
+    file: ./config/apm-server/apm-server.keystore
+  apm-server.crt:
+    file: ./config/ssl/docker-cluster/apm-server/apm-server.crt
+  apm-server.key:
+    file: ./config/ssl/docker-cluster/apm-server/apm-server.key

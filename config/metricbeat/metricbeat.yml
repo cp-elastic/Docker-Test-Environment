@@ -1,0 +1,94 @@
+metricbeat.config: 
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    # Reload module configs as they change:
+    reload.enabled: false
+
+metricbeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+
+metricbeat.modules:
+- module: docker
+  metricsets:
+    - container
+    - cpu
+    - diskio
+    - healthcheck
+    - info
+    - image
+    #- "memory
+    - network
+  hosts: ["unix:///var/run/docker.sock"]
+  period: 10s
+  enabled: true
+
+- module: elasticsearch
+  metricsets:
+    - ccr
+    - cluster_stats
+    - enrich
+    - index
+    - index_recovery
+    - index_summary
+    - ingest_pipeline
+    - ml_job
+    - node
+    - node_stats
+    - pending_tasks
+    - shard
+  hosts: ${ELASTICSEARCH_HOSTS}
+  enabled: true
+  period: 10s
+  username: elastic
+  password: "${ES_PWD}"
+  xpack.enabled: true
+  ssl:
+    enabled: true
+    certificate_authorities: ["/usr/share/metricbeat/certs/ca/ca.crt"]
+
+- module: kibana
+  metricsets:
+    - cluster_actions
+    - cluster_rules
+    - node_actions
+    - node_rules
+    - settings
+    - stats
+    - status
+  hosts: ["https://kibana:5601"]
+  enabled: true
+  period: 10s
+  username: elastic
+  password: "${ES_PWD}"
+  xpack.enabled: true
+  ssl:
+    enabled: true
+    certificate_authorities: ["/usr/share/metricbeat/certs/ca/ca.crt"]
+
+# - module: logstash
+#   metricsets:
+#     - node
+#     - node_stats
+#   period: 10s
+#   hosts: ["logstash:9600"]
+#   #username: "user"
+#   #password: "secret"
+#   xpack.enabled: true
+
+logging.level: info
+
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ${ELASTICSEARCH_HOSTS}
+    username: elastic
+    password: "${ES_PWD}"
+    ssl.certificate_authorities: ["/usr/share/metricbeat/certs/ca/ca.crt"]
+
+output.elasticsearch:
+  hosts: ${ELASTICSEARCH_HOSTS}
+  username: elastic
+  password: "${ES_PWD}"
+  ssl.certificate_authorities: ["/usr/share/metricbeat/certs/ca/ca.crt"]

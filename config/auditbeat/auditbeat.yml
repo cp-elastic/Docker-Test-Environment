@@ -1,0 +1,43 @@
+auditbeat.modules:
+
+- module: auditd
+  audit_rules: |
+    -w /etc/passwd -p wa -k identity
+    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -k access
+
+- module: file_integrity
+  paths:
+  - /bin
+  - /usr/bin
+  - /sbin
+  - /usr/sbin
+  - /etc
+
+- module: system
+  datasets:
+    - host
+    - login
+    - package
+    - process
+    - socket
+    - user
+  period: 10s
+  state.period: 12h
+
+  socket.include_localhost: true
+
+  user.detect_password_changes: true
+
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ${ELASTICSEARCH_HOSTS}
+    username: elastic
+    password: "${ES_PWD}"
+    ssl.certificate_authorities: ["/usr/share/auditbeat/certs/ca/ca.crt"]
+
+output.elasticsearch:
+  hosts: ${ELASTICSEARCH_HOSTS}
+  username: elastic
+  password: "${ES_PWD}"
+  ssl.certificate_authorities: ["/usr/share/auditbeat/certs/ca/ca.crt"]

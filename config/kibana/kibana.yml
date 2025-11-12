@@ -1,0 +1,17 @@
+server.name: kibana
+server.host: 0.0.0.0
+elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/config/certs/ca/ca.crt"]
+server.ssl.enabled: true
+server.ssl.certificate: /usr/share/kibana/config/certs/kibana/kibana.crt
+server.ssl.key: /usr/share/kibana/config/certs/kibana/kibana.key
+server.shutdownTimeout: "5s"
+server.publicBaseUrl: "https://kibana:5601"
+elasticsearch.hosts: ${ELASTICSEARCH_HOSTS}
+elasticsearch.ssl.verificationMode: certificate
+monitoring.ui.container.elasticsearch.enabled: true
+monitoring.ui.container.logstash.enabled: true
+xpack.encryptedSavedObjects.encryptionKey: ${ENCRYPTION_KEY}
+xpack.security.encryptionKey: ${ENCRYPTION_KEY}
+xpack.security.audit.enabled: true
+xpack.reporting.encryptionKey: ${ENCRYPTION_KEY}
+enterpriseSearch.host: 'http://enterprisesearch:3002'

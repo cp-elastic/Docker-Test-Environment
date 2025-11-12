@@ -1,0 +1,14 @@
+sync.sh
+password.txt
+*.crt
+*.key
+*.keystore
+*_toke*
+docker-cluster-ca.zip
+docker-cluster.zip
+rendered-instances.yml
+ca-fingerprint
+elastic-agent-*
+resources/msmarco-passagetest2019-unique.tsv
+.env
+resources/msmarco-passagetest2019-unique.ndjson

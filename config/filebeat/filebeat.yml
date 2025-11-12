@@ -1,0 +1,99 @@
+filebeat.config: 
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    # Reload module configs as they change:
+    reload.enabled: false
+
+filebeat.inputs:
+- type: container
+  paths: 
+    - '/var/lib/docker/containers/*/*.log'
+- type: log
+  paths:
+    - '/var/log/opencanary/*.log'
+  pipeline: "honeypot_ingest_to_ecs"
+
+filebeat.modules:
+# - module: threatintel
+#   abuseurl:
+#     enabled: true
+#     var.input: httpjson
+#     var.url: https://urlhaus-api.abuse.ch/v1/urls/recent/
+#     var.interval: 60m
+#   abusemalware:
+#     enabled: true
+#     var.input: httpjson
+#     var.url: https://urlhaus-api.abuse.ch/v1/payloads/recent/
+#     var.interval: 60m
+#   malwarebazaar:
+#     enabled: true
+#     var.input: httpjson
+#     var.url: https://mb-api.abuse.ch/api/v1/
+#     var.interval: 10m
+
+- module: system
+  syslog:
+    enabled: true
+    var.paths: ["/var/host-log/syslog*"]
+  auth:
+    enabled: true
+    var.paths: ["/var/host-log/auth.log*"]
+    
+- module: suricata
+  eve:
+    enabled: true
+    var.paths: ["/var/log/suricata/eve.json"]
+
+# Module: zeek
+# Docs: /guide/en/beats/filebeat/7.6/filebeat-module-zeek.html
+
+- module: zeek
+  capture_loss:
+    enabled: true
+    var.paths: ["/var/log/zeek/capture_loss.log"]
+  connection:
+    enabled: true
+    var.paths: ["/var/log/zeek/conn.log"]
+  dns:
+    enabled: true
+    var.paths: ["/var/log/zeek/dns.log"]
+  files:
+    enabled: true
+    var.paths: ["/var/log/zeek/files.log"]
+  http:
+    enabled: true
+    var.paths: ["/var/log/zeek/http.log"]
+  ssh:
+    enabled: true
+    var.paths: ["/var/log/zeek/ssh.log"]
+  ssl:
+    enabled: true
+    var.paths: ["/var/log/zeek/ssl.log"]
+  stats:
+    enabled: true
+    var.paths: ["/var/log/zeek/stats.log"]
+  weird:
+    enabled: true
+    var.paths: ["/var/log/zeek/weird.log"]
+  x509:
+    enabled: true
+    var.paths: ["/var/log/zeek/x509.log"]
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ${ELASTICSEARCH_HOSTS}
+    username: elastic
+    password: "${ES_PWD}"
+    ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+
+output.elasticsearch:
+  hosts: ${ELASTICSEARCH_HOSTS}
+  username: elastic
+  password: "${ES_PWD}"
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]

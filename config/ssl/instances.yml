@@ -1,0 +1,85 @@
+instances:
+  - name: elasticsearch01
+    dns:
+      - elasticsearch01
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: elasticsearch02
+    dns:
+      - elasticsearch02
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: elasticsearch03
+    dns:
+      - elasticsearch03
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: enterprisesearch
+    dns:
+      - enterprisesearch
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: elasticsearch-monitoring
+    dns:
+      - elasticsearch-monitoring
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: kibana
+    dns:
+      - kibana
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: logstash
+    dns:
+      - logstash
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: filebeat
+    dns: 
+      - filebeat
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: metricbeat
+    dns: 
+      - metricbeat
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: auditbeat
+    dns: 
+      - auditbeat
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: packetbeat
+    dns: 
+      - packetbeat
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: heartbeat
+    dns: 
+      - heartbeat
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: apm-server
+    dns: 
+      - apm-server
+      - localhost
+    ip:
+      - 127.0.0.1
+  - name: fleet-server
+    dns: 
+      - fleet-server
+      - localhost
+    ip:
+      - 127.0.0.1

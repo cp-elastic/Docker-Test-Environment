@@ -1,0 +1,76 @@
+filebeat.config: 
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    # Reload module configs as they change:
+    reload.enabled: false
+
+filebeat.inputs:
+- type: container
+  paths: 
+    - '/var/lib/docker/containers/*/*.log'
+
+filebeat.modules:
+- module: threatintel
+  abuseurl:
+    enabled: true
+  abusemalware:
+    enabled: true
+  malwarebazaar:
+    enabled: true
+
+- module: logstash
+  log:
+    enabled: true
+
+- module: system
+  syslog:
+    enabled: true
+  auth:
+    enabled: true
+    
+- module: suricata
+  eve:
+    enabled: true
+
+# Module: zeek
+# Docs: /guide/en/beats/filebeat/7.6/filebeat-module-zeek.html
+- module: zeek
+  capture_loss:
+    enabled: true
+  connection:
+    enabled: true
+  dns:
+    enabled: true
+  files:
+    enabled: true
+  http:
+    enabled: true
+  ssh:
+    enabled: true
+  ssl:
+    enabled: true
+  stats:
+    enabled: true
+  weird:
+    enabled: true
+  x509:
+    enabled: true
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+
+output.elasticsearch:
+  hosts: ${ELASTICSEARCH_HOSTS}
+  username: elastic
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+
+setup.ilm.overwrite: true
+setup.kibana:
+  host: "https://kibana:5601"
+  username: elastic
+  password: "${ELASTIC_PASSWORD}"
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]

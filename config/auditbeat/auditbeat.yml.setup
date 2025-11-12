@@ -1,0 +1,41 @@
+auditbeat.modules:
+
+- module: auditd
+  audit_rules: |
+    -w /etc/passwd -p wa -k identity
+    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -k access
+
+- module: file_integrity
+  paths:
+  - /bin
+  - /usr/bin
+  - /sbin
+  - /usr/sbin
+  - /etc
+
+- module: system
+  datasets:
+    - host
+    - login
+    - package
+    - process
+    - socket
+    - user
+  period: 10s
+  state.period: 12h
+  socket.include_localhost: true
+  user.detect_password_changes: true
+
+output.elasticsearch:
+  hosts: ${ELASTICSEARCH_HOSTS}
+  username: elastic
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities: ["/usr/share/auditbeat/certs/ca/ca.crt"]
+
+setup.ilm.overwrite: true
+setup.kibana:
+  host: "https://kibana:5601"
+  username: elastic
+  password: "${ELASTIC_PASSWORD}"
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/usr/share/auditbeat/certs/ca/ca.crt"]

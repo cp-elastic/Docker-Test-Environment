@@ -1,0 +1,44 @@
+packetbeat.interfaces.device: any
+
+packetbeat.flows:
+  timeout: 30s
+  period: 10s
+
+# Doesn't work well in Docker
+# packetbeat.procs.enabled: true
+
+packetbeat.protocols:
+- type: icmp
+  enabled: true
+- type: dhcpv4
+  ports: [67, 68]
+- type: dns
+  ports: [53]
+  include_authorities: true
+  include_additionals: true
+- type: http
+  ports: [8080, 3000, 8002]
+- type: mysql
+  ports: [3306]
+- type: redis
+  ports: [6379]
+- type: tls
+  ports: [5601, 9200, 9201, 9202, 9300, 9301, 9302, 8220]
+
+
+processors:
+- add_cloud_metadata:
+
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ["https://localhost:9200"]
+    username: elastic
+    password: "${ES_PWD}"
+    ssl.certificate_authorities: ["/usr/share/packetbeat/certs/ca/ca.crt"]
+
+output.elasticsearch:
+  hosts: ["https://localhost:9200"]
+  username: elastic
+  password: "${ES_PWD}"
+  ssl.certificate_authorities: ["/usr/share/packetbeat/certs/ca/ca.crt"]
