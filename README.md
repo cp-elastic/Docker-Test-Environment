@@ -40,7 +40,7 @@ Firewall:<br>
 Then do:
 
 ```
-git clone https://github.com/elastic-egs/docker-test-environment.git
+git clone https://github.com/cp-elastic/Docker-Test-Environment.git
 cd docker-test-environment
 # To start individual components
 bash stack-tool.sh start (all|stack|beats|apps|fleet|agent|enterprisesearch)
